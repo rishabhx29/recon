@@ -26,3 +26,22 @@ class InvestorEntity(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class CapitalCall(models.Model):
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name='capital_calls'
+    )
+    call_date = models.DateField()
+    due_date = models.DateField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organization', 'call_date', 'due_date'],
+                name='unique_call_dates_per_org',
+            ),
+        ]
+
+    def __str__(self):
+        return f'call {self.call_date}, due {self.due_date}'
