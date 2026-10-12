@@ -65,9 +65,10 @@ export default function App() {
     suggested: transactions.filter((entry) => entry.status === 'suggested').length,
     reconciled: transactions.filter((entry) => entry.status === 'reconciled').length,
   }
-  const funded = lineItems
-    .filter((lineItem) => lineItem.status === 'funded')
-    .reduce((total, lineItem) => total + Number(lineItem.amount_funded), 0)
+  const funded = lineItems.reduce(
+    (total, lineItem) => total + Number(lineItem.amount_funded),
+    0,
+  )
   const called = lineItems.reduce(
     (total, lineItem) => total + Number(lineItem.amount_called),
     0,
