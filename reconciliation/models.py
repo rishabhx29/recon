@@ -4,7 +4,6 @@ from django.db import models
 
 
 class Organization(models.Model):
-    # the X-Organization header carries this, not the display name
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=200)
 
@@ -16,7 +15,6 @@ class InvestorEntity(models.Model):
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE, related_name='investors'
     )
-    # the legal entity name the bank puts in wire descriptions
     name = models.CharField(max_length=200)
 
     class Meta:
@@ -68,8 +66,7 @@ class LineItem(models.Model):
     investor = models.ForeignKey(
         InvestorEntity, on_delete=models.CASCADE, related_name='line_items'
     )
-    # what LPs are told to put in the wire reference. deliberately not unique:
-    # one code can sit on two calls and matching has to cope with that
+    # one code can sit on two calls, so this is deliberately not unique
     reference = models.CharField(max_length=50)
     amount_called = models.DecimalField(max_digits=14, decimal_places=2)
     amount_funded = models.DecimalField(
@@ -118,12 +115,9 @@ class BankTransaction(models.Model):
     )
     date = models.DateField()
     description = models.TextField()
-    # signed the way the bank reported it: credits positive, debits negative
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     bank_reference = models.CharField(max_length=100)
-    # defaults to needs_review because nothing should look like a suggestion
-    # until matching has actually proposed one
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default=NEEDS_REVIEW
     )
@@ -152,8 +146,7 @@ class Match(models.Model):
         (REJECTED, 'Rejected'),
     ]
 
-    # denormalized from the transaction so every match lookup is org-scoped
-    # without joining through it
+    # denormalized so a match lookup is scoped without joining through it
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE, related_name='matches'
     )
