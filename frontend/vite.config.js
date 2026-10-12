@@ -7,7 +7,7 @@ export default defineConfig({
     // keeps the browser on one origin in development, so the api needs no cors
     // configuration at all
     proxy: {
-      '/api': 'http://localhost:8000',
+      '/api': 'http://127.0.0.1:8000',
     },
   },
 })
