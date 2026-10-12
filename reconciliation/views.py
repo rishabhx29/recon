@@ -32,5 +32,7 @@ def import_statement_view(request):
         summary = services.import_statement(upload, organization)
     except services.MissingColumns as exc:
         raise exceptions.ParseError(str(exc)) from exc
+    except UnicodeDecodeError:
+        raise exceptions.ParseError('file is not valid utf-8') from None
 
     return Response(summary)

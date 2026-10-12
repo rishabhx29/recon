@@ -77,6 +77,10 @@ def parse_row(raw, index, line):
 
     if amount == 0:
         raise RowError('amount cannot be zero')
+    # numeric(14, 2) caps this at 12 digits before the point. wider would fail
+    # the insert and roll back the whole import instead of reporting one bad row
+    if abs(amount) >= Decimal('1e12'):
+        raise RowError(f'amount out of range: {amount_text}')
     if entry_type == BankTransaction.CREDIT and amount < 0:
         raise RowError('credits must be positive')
     if entry_type == BankTransaction.DEBIT and amount > 0:
@@ -96,8 +100,8 @@ def parse_statement(uploaded_file):
     reader, index = read_header(uploaded_file)
     rows, errors = [], []
     for raw in reader:
-        # physical line, so the header is line 1. enumerate would drift as soon
-        # as a quoted description wraps onto a second line
+        # physical line the record finished on, so the header counts as line 1.
+        # enumerate would drift on any file with a quoted field spanning lines
         line = reader.line_num
         if not raw:
             continue
@@ -127,7 +131,7 @@ def import_statement(uploaded_file, organization):
             fresh.append(row)
 
     with transaction.atomic():
-        BankTransaction.objects.bulk_create(
+        imported = BankTransaction.objects.bulk_create(
             [
                 BankTransaction(
                     organization=organization,
@@ -146,6 +150,9 @@ def import_statement(uploaded_file, organization):
             ],
             batch_size=500,
         )
+
+        for bank_transaction in imported:
+            match_transaction(bank_transaction)
 
     return {
         'imported': len(fresh),
@@ -265,3 +272,43 @@ def apply_reference_matches(bank_transaction, line_items):
         f'{len(line_items)} eligible line items share reference '
         f'{line_items[0].reference}'
     )
+
+
+def apply_name_matches(bank_transaction, line_items):
+    if not line_items:
+        bank_transaction.status = BankTransaction.NEEDS_REVIEW
+        bank_transaction.review_reason = 'No eligible line item matches this payment'
+        return
+
+    if len(line_items) == 1:
+        line_item = line_items[0]
+        propose_match(bank_transaction, line_item, name_reason(bank_transaction, line_item))
+        bank_transaction.status = BankTransaction.SUGGESTED
+        return
+
+    for line_item in line_items:
+        propose_match(
+            bank_transaction, line_item, name_reason(bank_transaction, line_item)
+        )
+    bank_transaction.status = BankTransaction.NEEDS_REVIEW
+    bank_transaction.review_reason = (
+        f'{len(line_items)} eligible line items match investor name and amount'
+    )
+
+
+def match_transaction(bank_transaction):
+    if bank_transaction.type == BankTransaction.DEBIT:
+        return
+
+    line_items = list(eligible_line_items(bank_transaction))
+    reference_hits = reference_candidates(bank_transaction, line_items)
+
+    # a reference hit ends it, the name rule only runs when none was found
+    if reference_hits:
+        apply_reference_matches(bank_transaction, reference_hits)
+    else:
+        apply_name_matches(
+            bank_transaction, name_amount_candidates(bank_transaction, line_items)
+        )
+
+    bank_transaction.save()
