@@ -7,7 +7,9 @@ from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from django.db.models import F
+from rest_framework import exceptions
 
+from .errors import Conflict
 from .models import BankTransaction, LineItem, Match
 
 REQUIRED_COLUMNS = ['date', 'description', 'amount', 'type', 'reference']
@@ -282,7 +284,9 @@ def apply_name_matches(bank_transaction, line_items):
 
     if len(line_items) == 1:
         line_item = line_items[0]
-        propose_match(bank_transaction, line_item, name_reason(bank_transaction, line_item))
+        propose_match(
+            bank_transaction, line_item, name_reason(bank_transaction, line_item)
+        )
         bank_transaction.status = BankTransaction.SUGGESTED
         return
 
@@ -312,3 +316,47 @@ def match_transaction(bank_transaction):
         )
 
     bank_transaction.save()
+
+
+def approve_match(match_id, organization):
+    with transaction.atomic():
+        # match row first, then line item, always in that order, so two
+        # approvals for different matches on one line item queue up rather
+        # than deadlock
+        match = (
+            Match.objects.select_for_update()
+            .filter(id=match_id, organization=organization)
+            .first()
+        )
+        if match is None:
+            raise exceptions.NotFound('unknown match')
+
+        line_item = LineItem.objects.select_for_update().get(id=match.line_item_id)
+
+        if match.status != Match.PROPOSED:
+            raise Conflict(f'Match {match.id} is already {match.status}')
+
+        bank_transaction = match.transaction
+        if bank_transaction.status == BankTransaction.RECONCILED:
+            raise Conflict('transaction is already reconciled')
+        if bank_transaction.amount > line_item.remaining:
+            raise Conflict(
+                f'Amount {bank_transaction.amount:,.2f} exceeds remaining '
+                f'{line_item.remaining:,.2f} for {line_item.reference}'
+            )
+
+        line_item.amount_funded += bank_transaction.amount
+        line_item.refresh_status()
+        line_item.save()
+
+        match.status = Match.APPROVED
+        match.save()
+
+        # this transaction's other matches only, not matches from other
+        # transactions pointing at the same line item
+        bank_transaction.matches.exclude(id=match.id).update(status=Match.REJECTED)
+
+        bank_transaction.status = BankTransaction.RECONCILED
+        bank_transaction.save()
+
+    return match, line_item, bank_transaction
