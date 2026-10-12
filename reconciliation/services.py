@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
+from django.db import transaction
+
 from .models import BankTransaction
 
 REQUIRED_COLUMNS = ['date', 'description', 'amount', 'type', 'reference']
@@ -88,3 +90,67 @@ def parse_row(raw, index, line):
         type=entry_type,
         bank_reference=bank_reference,
     )
+
+
+def parse_statement(uploaded_file):
+    reader, index = read_header(uploaded_file)
+    rows, errors = [], []
+    for raw in reader:
+        # line_num counts physical lines in the file, so the header is line 1.
+        # enumerate would count rows instead and drift as soon as a quoted
+        # description wraps onto a second line
+        line = reader.line_num
+        if not raw:
+            continue
+
+        try:
+            rows.append(parse_row(raw, index, line))
+        except IndexError:
+            errors.append({'line': line, 'message': 'row is shorter than the header'})
+        except RowError as exc:
+            errors.append({'line': line, 'message': str(exc)})
+
+    return rows, errors
+
+
+def import_statement(uploaded_file, organization):
+    rows, errors = parse_statement(uploaded_file)
+
+    # one set covering references already stored and ones seen earlier in this
+    # same upload, which is how a repeat inside a single file gets caught
+    seen = set(organization.transactions.values_list('bank_reference', flat=True))
+    duplicates, fresh = [], []
+    for row in rows:
+        if row.bank_reference in seen:
+            duplicates.append(row)
+        else:
+            seen.add(row.bank_reference)
+            fresh.append(row)
+
+    with transaction.atomic():
+        BankTransaction.objects.bulk_create(
+            [
+                BankTransaction(
+                    organization=organization,
+                    date=row.date,
+                    description=row.description,
+                    amount=row.amount,
+                    type=row.type,
+                    bank_reference=row.bank_reference,
+                    status=(
+                        BankTransaction.IGNORED
+                        if row.type == BankTransaction.DEBIT
+                        else BankTransaction.NEEDS_REVIEW
+                    ),
+                )
+                for row in fresh
+            ],
+            batch_size=500,
+        )
+
+    return {
+        'imported': len(fresh),
+        'duplicates': len(duplicates),
+        'duplicate_lines': [row.line for row in duplicates],
+        'errors': errors,
+    }
