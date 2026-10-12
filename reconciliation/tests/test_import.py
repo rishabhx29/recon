@@ -32,10 +32,20 @@ class AmountParsingTests(ReconTestCase):
         self.organization = self.make_organization()
 
     def test_thousands_separator_stores_an_exact_decimal(self):
-        import_statement(csv_file('2026-04-03,WIRE,25,000.00,credit,FT1\n'), self.organization)
+        # the separator has to be inside a quoted field. unquoted, csv splits the
+        # row and the amount arrives as '25' with '000.00' landing on type
+        import_statement(csv_file('2026-04-03,WIRE,"25,000.00",credit,FT1\n'), self.organization)
         stored = BankTransaction.objects.get()
         self.assertEqual(stored.amount, Decimal('25000.00'))
         self.assertIsInstance(stored.amount, Decimal)
+
+    def test_an_unquoted_separator_is_reported_as_a_bad_row_not_imported(self):
+        summary = import_statement(
+            csv_file('2026-04-03,WIRE,25,000.00,credit,FT1\n'), self.organization
+        )
+        self.assertEqual(summary['imported'], 0)
+        self.assertEqual(summary['errors'][0]['line'], 2)
+        self.assertEqual(BankTransaction.objects.count(), 0)
 
     def test_credit_with_negative_amount_is_reported(self):
         _, errors = parse_statement(csv_file('2026-04-03,WIRE,-100.00,credit,FT1\n'))

@@ -6,37 +6,34 @@ Ordered by how much they would cost me, not by when I found them.
 
 ---
 
-## 1. The tests have never been run
+## 1. What the first real run of the suite caught
 
-This is the first item because it is the one I would be most embarrassed to
-find out about from a reviewer.
+The suite had never been executed when I wrote it. The first run was 43 tests
+with one error, and the error was in my test rather than in the application:
 
-All 43 tests exist, the package compiles, and every name, URL and model
-attribute they touch exists in the source. **Not one of them has been executed.**
-I wrote them last, with the submission deadline as the binding constraint, and
-chose to spend the remaining time on `ASSESSMENT_NOTES.md` instead.
+```
+ERROR: test_thousands_separator_stores_an_exact_decimal
+reconciliation.models.BankTransaction.DoesNotExist
+```
 
-What I expect to be wrong:
+The fixture row was `2026-04-03,WIRE,25,000.00,credit,FT1`. A thousands
+separator has to sit inside a quoted CSV field. Unquoted, the parser split the
+row, read the amount as `25` and the type as `000.00`, rejected it as
+`invalid type`, and saved nothing. The brief writes that amount as
+`"25,000.00"` with the quotes, so the parser was correct and my fixture was
+not.
 
-- **Assertion mismatches on exact strings.** The import tests assert on the
-  literal error text, for example `'credits must be positive'` and
-  `'invalid date: 2026-04-31'`. Those came from memory of `services.py`, not
-  from reading the messages back out of a run.
-- **`test_seed_command_tests`** expects exactly 2 organizations and 7 line
-  items after running `seed_demo` twice. If the seed creates anything extra,
-  that test fails for a reason unrelated to what it is testing.
-- **The concurrency test.** It releases two threads through a `Barrier` and
-  asserts `[200, 409]`. If the timing works out so the loser reads the line
-  item before the winner commits, both could return 200 and the test would
-  correctly report a real bug — but I cannot tell in advance which way it
-  goes, and a flaky test is worse than no test.
-- **`test_partial_payment_is_still_a_match`** asserts the reason contains
-  `'partially pays'`, again from memory of the wording in `reference_reason`.
+I kept the broken row as its own case, because the behaviour it fell into is
+the one a reviewer is most likely to try: an unquoted separator is now asserted
+to be reported as a bad row with its line number, and to import nothing.
 
-**What I would do first:** run `python manage.py test`, fix the string
-assertions against the actual messages, and run the concurrency file ten times
-to find out whether it is deterministic. Then add the end-to-end test below,
-which is the one that matters most.
+Two things I flagged as likely failures were not. The error-string assertions
+passed, which surprised me, since I wrote them from memory of `services.py`
+rather than from a run. The concurrency test passed six consecutive times,
+which surprised me more — it releases two threads through a `Barrier` and
+asserts `[200, 409]`, and I could not tell in advance which way it would go.
+
+The suite is now 44 tests and passes. What it still does not do is section 2.
 
 ### The test that is missing entirely
 
@@ -138,15 +135,14 @@ post-action refetch, which may well matter.
   disagree with its source if anything ever writes a `Match` directly instead
   of going through the service layer. Nothing does today.
 - **The Airtable bonus is not built.** Optional, and I would rather spend the
-  time on the test suite above.
+  time on the tests in section 2.
 
 ---
 
 ## What I would do with one more day
 
-1. Run the suite and fix what falls over.
-2. Add the end-to-end sample-file test.
-3. Write the adversarial CSV in section 2 and run it through the UI.
-4. Move the summary totals to the server and delete both `Number()` calls.
-5. Re-read `services.py` top to bottom without the intent that produced it,
+1. Add the end-to-end sample-file test from section 2.
+2. Write the adversarial CSV in section 3 and run it through the UI.
+3. Move the summary totals to the server and delete both `Number()` calls.
+4. Re-read `services.py` top to bottom without the intent that produced it,
    looking only for what a reviewer would attack first.

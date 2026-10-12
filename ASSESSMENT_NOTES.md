@@ -46,8 +46,31 @@ one.
 python manage.py test
 ```
 
-That runs all 43, including a two-thread concurrency test that proves a line
-item cannot be funded twice.
+44 tests, all passing. They cover the eight required cases plus normalisation,
+per-row import errors, cross-tenant isolation, seed idempotency, and a
+two-thread concurrency test that proves a line item cannot be funded twice —
+two 8,000 wires against a 10,000 line item, released together, of which exactly
+one may succeed.
+
+### Screen recording
+
+I was not able to produce the walkthrough recording. I would rather say so than
+send something I did not make. The parts it was meant to cover are all
+reachable in about two minutes by hand:
+
+```bash
+python manage.py seed_demo    # run it twice, the counts do not change
+```
+
+Then open the React page, upload `docs/sample_bank_statement.csv`, and the
+import summary reports the imported count, the duplicate skipped inside the
+file, and the two invalid rows with their line numbers. The transaction table
+shows the suggestion reasons, the overpayment that produced no match, and the
+row with two candidates. Approving one updates the line item panel and rejects
+the other candidate. Switching organization in the left rail shows a different
+tenant's data and a 404 on anything that belongs to the first.
+
+`NEED_REVIEW.md` records what I would have pointed at while recording.
 
 ## Data model
 
