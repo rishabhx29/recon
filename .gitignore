@@ -17,6 +17,14 @@ dist/
 *.local
 npm-debug.log*
 yarn-error.log*
+
+# transcripts from running runserver and vite by hand
+runserver.out
+runserver.err
+rs2.out
+rs2.err
+vite.out
+vite.err
 .playwright-cli/
 .coverage
 coverage/
