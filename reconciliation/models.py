@@ -92,3 +92,51 @@ class LineItem(models.Model):
 
     def __str__(self):
         return f'{self.reference} {self.investor.name}'
+
+
+class BankTransaction(models.Model):
+    CREDIT = 'credit'
+    DEBIT = 'debit'
+    TYPE_CHOICES = [
+        (CREDIT, 'Credit'),
+        (DEBIT, 'Debit'),
+    ]
+
+    SUGGESTED = 'suggested'
+    NEEDS_REVIEW = 'needs_review'
+    RECONCILED = 'reconciled'
+    IGNORED = 'ignored'
+    STATUS_CHOICES = [
+        (SUGGESTED, 'Suggested'),
+        (NEEDS_REVIEW, 'Needs review'),
+        (RECONCILED, 'Reconciled'),
+        (IGNORED, 'Ignored'),
+    ]
+
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name='transactions'
+    )
+    date = models.DateField()
+    description = models.TextField()
+    # signed the way the bank reported it: credits positive, debits negative
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    bank_reference = models.CharField(max_length=100)
+    # defaults to needs_review because nothing should look like a suggestion
+    # until matching has actually proposed one
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=NEEDS_REVIEW
+    )
+    review_reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organization', 'bank_reference'],
+                name='unique_bank_reference_per_org',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.date} {self.bank_reference} {self.amount}'
