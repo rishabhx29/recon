@@ -1,6 +1,7 @@
 docs/
 PLAN.md
 PRD.md
+WALKTHROUGH.md
 
 __pycache__/
 *.py[cod]
@@ -9,5 +10,14 @@ venv/
 .env
 *.sqlite3
 staticfiles/
+
 node_modules/
 dist/
+.vite/
+*.local
+npm-debug.log*
+yarn-error.log*
+.playwright-cli/
+.coverage
+coverage/
+htmlcov/

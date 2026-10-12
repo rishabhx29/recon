@@ -9,4 +9,6 @@ urlpatterns = [
     path('transactions', views.transactions),
     path('line-items', views.line_items),
     path('matches/<int:match_id>/approve', views.approve_match_view),
+    path('matches/<int:match_id>/reject', views.reject_match_view),
+    path('transactions/<int:transaction_id>/ignore', views.ignore_transaction_view),
 ]

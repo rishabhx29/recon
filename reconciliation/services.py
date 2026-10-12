@@ -360,3 +360,50 @@ def approve_match(match_id, organization):
         bank_transaction.save()
 
     return match, line_item, bank_transaction
+
+
+def reject_match(match_id, organization):
+    with transaction.atomic():
+        match = (
+            Match.objects.select_for_update()
+            .filter(id=match_id, organization=organization)
+            .first()
+        )
+        if match is None:
+            raise exceptions.NotFound('unknown match')
+        if match.status == Match.APPROVED:
+            raise Conflict('an approved match cannot be rejected')
+
+        match.status = Match.REJECTED
+        match.save()
+
+        bank_transaction = match.transaction
+        if not bank_transaction.matches.filter(status=Match.PROPOSED).exists():
+            bank_transaction.status = BankTransaction.NEEDS_REVIEW
+            bank_transaction.review_reason = 'All suggested matches were rejected'
+            bank_transaction.save()
+
+    return match, bank_transaction
+
+
+def ignore_transaction(transaction_id, organization):
+    with transaction.atomic():
+        bank_transaction = (
+            BankTransaction.objects.select_for_update()
+            .filter(id=transaction_id, organization=organization)
+            .first()
+        )
+        if bank_transaction is None:
+            raise exceptions.NotFound('unknown transaction')
+        if bank_transaction.status == BankTransaction.RECONCILED:
+            raise Conflict('a reconciled transaction cannot be ignored')
+        if bank_transaction.status == BankTransaction.IGNORED:
+            raise Conflict('transaction is already ignored')
+
+        bank_transaction.matches.filter(status=Match.PROPOSED).update(
+            status=Match.REJECTED
+        )
+        bank_transaction.status = BankTransaction.IGNORED
+        bank_transaction.save()
+
+    return bank_transaction

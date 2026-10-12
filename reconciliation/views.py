@@ -74,17 +74,24 @@ def line_items(request):
     return Response({'results': LineItemSerializer(queryset, many=True).data})
 
 
-def match_or_404(request, match_id, organization):
+def match_or_404(match_id, organization):
     # scoped before anything else runs, so an id from another organization is
     # indistinguishable from one that does not exist
     if not Match.objects.filter(id=match_id, organization=organization).exists():
         raise exceptions.NotFound('unknown match')
 
 
+def transaction_or_404(transaction_id, organization):
+    if not BankTransaction.objects.filter(
+        id=transaction_id, organization=organization
+    ).exists():
+        raise exceptions.NotFound('unknown transaction')
+
+
 @api_view(['POST'])
 def approve_match_view(request, match_id):
     organization = organization_from(request)
-    match_or_404(request, match_id, organization)
+    match_or_404(match_id, organization)
 
     match, line_item, bank_transaction = services.approve_match(match_id, organization)
 
@@ -95,3 +102,27 @@ def approve_match_view(request, match_id):
             'transaction': BankTransactionSerializer(bank_transaction).data,
         }
     )
+
+
+@api_view(['POST'])
+def reject_match_view(request, match_id):
+    organization = organization_from(request)
+    match_or_404(match_id, organization)
+
+    match, bank_transaction = services.reject_match(match_id, organization)
+
+    return Response(
+        {
+            'match': MatchSerializer(match).data,
+            'transaction': BankTransactionSerializer(bank_transaction).data,
+        }
+    )
+
+
+@api_view(['POST'])
+def ignore_transaction_view(request, transaction_id):
+    organization = organization_from(request)
+    transaction_or_404(transaction_id, organization)
+
+    bank_transaction = services.ignore_transaction(transaction_id, organization)
+    return Response({'transaction': BankTransactionSerializer(bank_transaction).data})

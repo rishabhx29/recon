@@ -1,0 +1,380 @@
+:root {
+  --rail: #23231f;
+  --rail-line: #38372f;
+  --rail-text: #d8d4ca;
+  --rail-muted: #918c81;
+
+  --paper: #f2f1ec;
+  --surface: #ffffff;
+  --surface-alt: #faf9f6;
+  --ink: #1f1f1c;
+  --muted: #6f6b63;
+  --line: #e3e0d9;
+  --line-strong: #d2cec5;
+
+  --suggested: #5a554c;
+  --needs-review: #8a6116;
+  --reconciled: #2f6b45;
+  --ignored: #8f8a80;
+  --danger: #8f2f20;
+  --danger-bg: #fbf1ee;
+  --danger-line: #e3c8c2;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* side rail */
+
+.rail {
+  width: 248px;
+  flex: 0 0 248px;
+  background: var(--rail);
+  color: var(--rail-text);
+  padding: 26px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.rail-brand h1 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 3px;
+}
+
+.rail-brand span {
+  font-size: 12px;
+  color: var(--rail-muted);
+}
+
+.org-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rail-muted);
+}
+
+.org-switcher select {
+  font: inherit;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--rail-text);
+  background: #2e2d28;
+  border: 1px solid var(--rail-line);
+  border-radius: 5px;
+  padding: 7px 9px;
+  width: 100%;
+}
+
+/* content */
+
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 26px 28px 64px;
+}
+
+/* summary strip */
+
+.stats {
+  display: flex;
+  gap: 1px;
+  background: var(--line-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.stat {
+  flex: 1;
+  background: var(--surface);
+  padding: 14px 16px 15px;
+}
+
+.stat-wide {
+  flex: 1.6;
+}
+
+.stat-value {
+  display: block;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* sections */
+
+section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 20px 22px 22px;
+  margin-bottom: 20px;
+}
+
+section > h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 14px;
+}
+
+.count {
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* tables */
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 -22px;
+  padding: 0 22px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 12px 9px 0;
+  border-bottom: 1px solid var(--line-strong);
+  white-space: nowrap;
+}
+
+td {
+  padding: 11px 12px 11px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover td {
+  background: var(--surface-alt);
+}
+
+tbody tr.is-review td {
+  background: #fdfaf3;
+}
+
+tbody tr.is-review:hover td {
+  background: #fbf6ea;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 0;
+}
+
+.amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-right: 20px;
+}
+
+th.amount {
+  padding-right: 20px;
+}
+
+.reason {
+  color: var(--muted);
+  max-width: 320px;
+}
+
+/* import */
+
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+input[type='file'] {
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+input[type='file']::file-selector-button {
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  padding: 5px 12px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+button {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--muted);
+  background: var(--surface-alt);
+}
+
+button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  background: var(--surface-alt);
+}
+
+.button-pair {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.button-pair button:last-child {
+  margin-right: 0;
+}
+
+/* status */
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 11px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.badge-suggested {
+  color: var(--suggested);
+  border-color: #d6d2c8;
+  background: #f6f5f1;
+}
+
+.badge-needs_review,
+.badge-partially_funded {
+  color: var(--needs-review);
+  border-color: #e2cda2;
+  background: #fbf5e8;
+}
+
+.badge-reconciled,
+.badge-funded {
+  color: var(--reconciled);
+  border-color: #b6d2bf;
+  background: #eff6f1;
+}
+
+.badge-ignored,
+.badge-open {
+  color: var(--ignored);
+  border-color: #dedbd4;
+  background: #faf9f6;
+}
+
+/* feedback */
+
+.empty {
+  color: var(--muted);
+  padding: 18px 0 14px;
+}
+
+.error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-line);
+  border-left: 3px solid var(--danger);
+  border-radius: 5px;
+  color: var(--danger);
+  padding: 10px 14px;
+  margin-bottom: 20px;
+}
+
+.summary {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.summary p {
+  margin: 0 0 6px;
+}
+
+.errors {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--danger);
+}
+
+.errors li {
+  margin-bottom: 2px;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    flex-direction: column;
+  }
+
+  .rail {
+    width: 100%;
+    flex: none;
+  }
+
+  .stats {
+    flex-wrap: wrap;
+  }
+}
