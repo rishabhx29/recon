@@ -140,3 +140,33 @@ class BankTransaction(models.Model):
 
     def __str__(self):
         return f'{self.date} {self.bank_reference} {self.amount}'
+
+
+class Match(models.Model):
+    PROPOSED = 'proposed'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (PROPOSED, 'Proposed'),
+        (APPROVED, 'Approved'),
+        (REJECTED, 'Rejected'),
+    ]
+
+    # denormalized from the transaction so every match lookup is org-scoped
+    # without joining through it
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name='matches'
+    )
+    transaction = models.ForeignKey(
+        BankTransaction, on_delete=models.CASCADE, related_name='matches'
+    )
+    line_item = models.ForeignKey(
+        LineItem, on_delete=models.CASCADE, related_name='matches'
+    )
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=PROPOSED
+    )
+    reason = models.TextField()
+
+    def __str__(self):
+        return f'{self.transaction_id} -> {self.line_item_id} ({self.status})'
