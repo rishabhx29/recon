@@ -32,7 +32,11 @@ SECRET_KEY = os.environ['SECRET_KEY']
 # is True in Python, which would make any value turn debug on
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+# filtered so an unset var stays an empty list, which keeps DEBUG's
+# localhost shortcut working; '' left in would match an empty Host header only
+ALLOWED_HOSTS = [
+    host for host in os.environ.get('ALLOWED_HOSTS', '').split(',') if host
+]
 
 
 # Application definition
@@ -44,15 +48,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'corsheaders',
     'rest_framework',
-
     'reconciliation',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -130,6 +135,19 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# collectstatic writes here at build time; whitenoise serves it in production,
+# since gunicorn has no filesystem route for the admin's css
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# the browser now sits on a different origin from the api, so the deployed
+# frontend's origin has to be named. unset in dev, where the vite proxy keeps
+# everything on one origin and this package does nothing
+CORS_ALLOWED_ORIGINS = [
+    origin
+    for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
+    if origin
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
